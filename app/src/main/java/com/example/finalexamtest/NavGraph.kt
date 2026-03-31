@@ -8,17 +8,17 @@ import androidx.navigation.compose.composable
 
 @Composable
 fun NavGraph(navController: NavHostController) {
-    val foodViewModel: FoodViewModel = viewModel()
+    val shirtViewModel: ShirtViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route
     ) {
         composable(route = Screen.Home.route) {
-            HomeScreen(navController = navController, viewModel = foodViewModel)
+            HomeScreen(navController = navController, viewModel = shirtViewModel)
         }
 
         composable(route = Screen.Insert.route) {
-            InsertScreen(navController = navController, viewModel = foodViewModel)
+            InsertScreen(navController = navController, viewModel = shirtViewModel)
         }
     }
 }

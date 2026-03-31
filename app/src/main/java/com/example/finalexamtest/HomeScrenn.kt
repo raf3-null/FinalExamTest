@@ -6,9 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,14 +25,13 @@ import androidx.navigation.NavHostController
 @Composable
 fun HomeScreen(
     navController: NavHostController,
-    viewModel: FoodViewModel = viewModel()
+    viewModel: ShirtViewModel = viewModel()
 ) {
-    val total = viewModel.foodList.sumOf { it.price * it.amount }
-    val vat = total * 0.07
-    val grandTotal = total + vat
-
-    val contextForToast = LocalContext.current.applicationContext
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<Shirt?>(null) }
+
     DisposableEffect(key1 = lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -41,82 +41,83 @@ fun HomeScreen(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+
+    if (showDeleteDialog && itemToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(text = "Confirm Delete") },
+            text = { Text(text = "Are you sure you want to delete this order?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.deleteFood(itemToDelete!!.id) {
+                        Toast.makeText(context, "Deleted successfully", Toast.LENGTH_SHORT).show()
+                    }
+                    showDeleteDialog = false
+                }) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("No")
+                }
+            }
+        )
+    }
+
     Column {
-        Spacer(modifier = Modifier.height(height = 20.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(all = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(modifier = Modifier.weight(weight = 0.85f)) {
-                Text(
-                    text = "Food Lists: ${viewModel.foodList.size}",
-                    fontSize = 25.sp
-                )
-
-                Text(
-                    text = "Total: $total",
-                    fontSize = 18.sp
-                )
-
-                Text(
-                    text = "VAT 7%%: %.2f".format(vat),
-                    fontSize = 18.sp
-                )
-
-                Text(
-                    text = "Grand Total: %.2f".format(grandTotal),
-                    fontSize = 20.sp,
-                    color = Color.Red
-                )
-            }
+            Text(
+                text = "Customer list: ${viewModel.shirtList.size}",
+                fontSize = 25.sp
+            )
             Button(onClick = {
                 navController.navigate(Screen.Insert.route)
             }) {
-                Text(text = "Add Food")
+                Text(text = "Add order")
             }
         }
-        LazyColumn (
-                verticalArrangement = Arrangement.spacedBy(space = 6.dp)
-                ) {
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             items(
-                items = viewModel.foodList,
+                items = viewModel.shirtList,
                 key = { it.id }
             ) { item ->
                 Card(
                     modifier = Modifier
-                        .padding(horizontal = 8.dp, vertical = 8.dp)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                         .fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    ),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 2.dp
-                    ),
-                    shape = RoundedCornerShape(corner = CornerSize(size = 16.dp)),
-                    onClick = {
-                        Toast.makeText(
-                            contextForToast, "Click on ${item.name}.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = RoundedCornerShape(corner = CornerSize(16.dp))
                 ) {
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .padding(all = 16.dp),
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            modifier = Modifier.weight(weight = 0.85f),
-                            text = "ID: ${item.id}\n" +
-                                    "Name: ${item.name}\n" +
-                                    "Price: ${item.price}\n" +
-                                    "Amount: ${item.amount}\n" +
-                                    "Subtotal: ${item.price * item.amount} ",
-                            fontSize = 20.sp
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "Customer: ${item.name}", fontSize = 18.sp)
+                            Text(text = "Type: ${item.type}", fontSize = 16.sp)
+                            Text(text = "Size: ${item.size}", fontSize = 16.sp)
+                            Text(text = "Total Price: ${item.price}", fontSize = 18.sp, color = Color.Blue)
+                        }
+                        IconButton(onClick = {
+                            itemToDelete = item
+                            showDeleteDialog = true
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                        }
                     }
                 }
             }
